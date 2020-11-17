@@ -52,18 +52,24 @@ namespace grid_map_line
         publish();
 
         // Define line index
-        grid_map::Index a(0, 0);
-        grid_map::Index d(0, 20);
-
-        // Loop through line region
-        for(grid_map::LineIterator itr(map_, a, d); !itr.isPastEnd(); ++itr)
+        grid_map::Position a_point(0.3, 0.3);
+        grid_map::Position b_point(-0.3, -0.3);
+        grid_map::Index a;
+        grid_map::Index b;
+        if(grid_map::getIndexFromPosition(a, a_point, map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize())
+        && grid_map::getIndexFromPosition(b, b_point, map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize()))
         {
-            // Change value from 0.0 to 1.0
-            map_.at("type", *itr) = 1.0;
-            // Publish map
-            publish();
-            // Sleep process
-            r.sleep();
+            // ROS_INFO_STREAM("index at a:" << a.value << ", " << a.y );
+            // Loop through line region
+            for(grid_map::LineIterator itr(map_, a, b); !itr.isPastEnd(); ++itr)
+            {
+                // Change value from 0.0 to 1.0
+                map_.at("type", *itr) = 1.0;
+                // Publish map
+                publish();
+                // Sleep process
+                r.sleep();
+            }
         }
     }
 
