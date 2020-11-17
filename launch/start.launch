@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <!-- Run line_node -->
+    <node pkg="ros-grid-map-line-itr" type="line_node" name="line_node" output="screen">
+        <rosparam>
+            rate: 5
+        </rosparam>
+    </node>
+
+    <!-- Visualize grid map as map -->
+    <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen">
+        <rosparam command="load" file="$(find ros-grid-map-line-itr)/config/line_viz.yaml"/>
+    </node>
+
+    <!-- Run RViz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ros-grid-map-line-itr)/rviz/rviz.rviz"/>
+
+</launch>
