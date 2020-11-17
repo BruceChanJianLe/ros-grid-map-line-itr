@@ -25,7 +25,7 @@ include_directories(
 )
 
 add_executable(line_node
-  src/line_node.cpp
-  src/line.cpp
+src/line_node.cpp
+src/line.cpp
 )
 target_link_libraries(line_node ${catkin_LIBRARIES})
