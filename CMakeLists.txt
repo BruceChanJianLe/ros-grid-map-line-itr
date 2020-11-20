@@ -10,6 +10,10 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_visualization
   roscpp
   rospy
+
+  # RViz interactive markers dependencies
+  interactive_markers
+  visualization_msgs
 )
 
 catkin_package(
