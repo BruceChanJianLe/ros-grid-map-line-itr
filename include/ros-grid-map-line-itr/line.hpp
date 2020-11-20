@@ -4,10 +4,13 @@
 #include <ros/ros.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <geometry_msgs/PolygonStamped.h>
-// #include <grid_map_msgs/GridMap.h>
+
+// RViz interactive marker
+#include <interactive_markers/interactive_marker_server.h>
 
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace grid_map_line
 {
@@ -19,13 +22,24 @@ namespace grid_map_line
             ros::Publisher grid_map_pub_;
             ros::Publisher polygon_pub_;
 
+            // Interactive marker server
+            std::shared_ptr<interactive_markers::InteractiveMarkerServer> int_server_;
+            visualization_msgs::InteractiveMarker int_marker_msg_;
+            visualization_msgs::Marker marker_msg_;
+            visualization_msgs::InteractiveMarkerControl viz_int_marker_msg_;
+            visualization_msgs::InteractiveMarkerControl con_int_marker_msg_;
+
             // Private variables
             int rate_;
             grid_map::GridMap map_;
+            bool update_;
 
             // Private functions
             void publish();
             void process();
+            void prepare_int_marker();
+            void display_int_marker();
+            void insert_int_marker();
         public:
             // Constructor
             line();
