@@ -46,22 +46,20 @@ namespace grid_map_line
 
     void line::process()
     {
+        // DEBUG
+        ROS_INFO_STREAM("DEBUG: Enter here!");
+
         // Refresh map
         map_.clearAll();
         // Publish map
         publish();
 
-        // Define line index
-        grid_map::Position a_point(0.3, 0.3);
-        grid_map::Position b_point(-0.3, -0.3);
-        grid_map::Index a;
-        grid_map::Index b;
-        if(grid_map::getIndexFromPosition(a, a_point, map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize())
-        && grid_map::getIndexFromPosition(b, b_point, map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize()))
+        // Check if points are valid (inside of map)
+        if(grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize())
+        && grid_map::getIndexFromPosition(index_b_, points_["point_b"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize()))
         {
-            // ROS_INFO_STREAM("index at a:" << a.value << ", " << a.y );
             // Loop through line region
-            for(grid_map::LineIterator itr(map_, a, b); !itr.isPastEnd(); ++itr)
+            for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
             {
                 // Change value from 0.0 to 1.0
                 map_.at("type", *itr) = 1.0;
@@ -69,16 +67,36 @@ namespace grid_map_line
                 publish();
             }
         }
+        else
+        {
+            // Obtain closest point if it is invalid
+            points_["point_a"] = map_.getClosestPositionInMap(points_["point_a"]);
+            points_["point_b"] = map_.getClosestPositionInMap(points_["point_b"]);
+
+            // Obtain index from closest point
+            grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize());
+            grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize());
+
+            // Loop through line region
+            for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
+            {
+                // Change value from 0.0 to 1.0
+                map_.at("type", *itr) = 1.0;
+                // Publish map
+                publish();
+            }
+        }
+        
     }
 
 
-    void line::prepare_int_marker()
+    void line::prepare_int_marker(const std::string & name, const std::string & description)
     {
         // Prepare point a
         int_marker_msg_.header.frame_id = map_.getFrameId();
 
         // Set interactive marker scale
-        int_marker_msg_.scale = 1;
+        int_marker_msg_.scale = 0.15;
 
         // Prepare visual marker for interactive marker
 
@@ -86,9 +104,9 @@ namespace grid_map_line
             marker_msg_.type = visualization_msgs::Marker::CUBE;
 
             // marker scale (obtain from interactive marker)
-            marker_msg_.scale.x = int_marker_msg_.scale * 0.45;
-            marker_msg_.scale.y = int_marker_msg_.scale * 0.45;
-            marker_msg_.scale.z = int_marker_msg_.scale * 0.45;
+            marker_msg_.scale.x = int_marker_msg_.scale * 0.30;
+            marker_msg_.scale.y = int_marker_msg_.scale * 0.30;
+            marker_msg_.scale.z = int_marker_msg_.scale * 0.30;
 
             // Marker color
             marker_msg_.color.r = 0.5;
@@ -101,8 +119,10 @@ namespace grid_map_line
             viz_int_marker_msg_.markers.emplace_back(marker_msg_);
 
         // Planar Marker
-        int_marker_msg_.name = "Planar Marker A";
-        int_marker_msg_.description = "point a";
+        int_marker_msg_.name = name;
+        int_marker_msg_.description = description;
+        // int_marker_msg_.name = "point_a";
+        // int_marker_msg_.description = "point a";
 
         // Display control
 
@@ -126,6 +146,9 @@ namespace grid_map_line
 
         // Insert interactive marker into interactive marker server
         insert_int_marker();
+
+        // Add marker to points map
+        points_[name] = grid_map::Position(0, 0);
     }
 
 
@@ -134,22 +157,33 @@ namespace grid_map_line
         // Insert marker
         int_server_->insert(int_marker_msg_);
 
-        // Set marker callback
-        int_server_->setCallback(
-            int_marker_msg_.name,
-            [this](const visualization_msgs::InteractiveMarkerFeedbackConstPtr & feedback)
+        // Prepare lambda function with swallow argument (marker name)
+        auto int_server_callback =
+            [this](const visualization_msgs::InteractiveMarkerFeedbackConstPtr & feedback, std::string name) -> void
             {
                 // Pose update event
                 if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE)
                 {
-                    // limit x position of interactive marker
-                    if(feedback->pose.position.x > map_.getLength().x())
-                    {
-                        ;
-                    }
+                    // Update the marker position to point position
+                    this->points_[name] = grid_map::Position(feedback->pose.position.x, feedback->pose.position.y);
+
+                    // Set update_ to true
+                    this->update_ = true;
                 }
+            };
+
+        // Set marker callback
+        int_server_->setCallback(
+            int_marker_msg_.name,
+            [this, & int_server_callback](const visualization_msgs::InteractiveMarkerFeedbackConstPtr & feedback)
+            {
+                // Use callback function
+                int_server_callback(feedback, this->int_marker_msg_.name);
             }
         );
+
+        // Commit and apply changes
+        int_server_->applyChanges();
     }
 
 
@@ -158,6 +192,8 @@ namespace grid_map_line
         ros::Rate r(5);
 
         // Prepare marker
+        prepare_int_marker("point_a", "Point A");
+        prepare_int_marker("point_b", "Point B");
 
         // Insert marker
 
