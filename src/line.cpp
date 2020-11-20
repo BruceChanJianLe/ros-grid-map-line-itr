@@ -28,6 +28,13 @@ namespace grid_map_line
 
     void line::publish()
     {
+        // Print lenght
+        ROS_INFO_STREAM(
+            "map length x: " << map_.getLength().x() <<
+            "\tmap length y: " << map_.getLength().y() <<
+            "\n map position: " << map_.getPosition()
+        );
+
         // Set msg timestamp
         map_.setTimestamp(ros::Time::now().toNSec());
         // Create map_msg
