@@ -43,9 +43,10 @@ namespace grid_map_line
             // Private functions
             void publish();
             void process();
-            void prepare_int_marker(const std::string &,const std::string &);
+            void prepare_int_marker(const std::string,const std::string);
             void display_int_marker();
-            void insert_int_marker();
+            void insert_int_marker(const std::string);
+            grid_map::Position getValidClosestPositionInMap(const grid_map::Position &) const;
         public:
             // Constructor
             line();
