@@ -98,6 +98,11 @@ namespace grid_map_line
         // Set interactive marker scale
         int_marker_msg_.scale = 0.15;
 
+        if(name == "point_b")
+        {
+            int_marker_msg_.pose.position.x = 0.3;
+        }
+
         // Prepare visual marker for interactive marker
 
             // Marker visual
@@ -164,6 +169,9 @@ namespace grid_map_line
                 // Pose update event
                 if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE)
                 {
+                    // DEBUG
+                    ROS_INFO_STREAM("DEBUG: marker x: " << feedback->pose.position.x << " marker y: " << feedback->pose.position.y);
+
                     // Update the marker position to point position
                     this->points_[name] = grid_map::Position(feedback->pose.position.x, feedback->pose.position.y);
 
