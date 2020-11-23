@@ -38,59 +38,76 @@ namespace grid_map_line
         grid_map::GridMapRosConverter::toMessage(map_, msg);
         // Publish msg
         grid_map_pub_.publish(msg);
+    }
 
-        // DEBUG
-        ROS_INFO_STREAM("line node: grid map being published at" << msg.info.header.stamp.toSec());
+
+    grid_map::Position line::getValidClosestPositionInMap(const grid_map::Position & pose) const
+    {
+        ;
     }
 
 
     void line::process()
     {
-        // DEBUG
-        ROS_INFO_STREAM("DEBUG: Enter here!");
-
         // Refresh map
         map_.clearAll();
         // Publish map
         publish();
 
-        // Check if points are valid (inside of map)
-        if(grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize())
-        && grid_map::getIndexFromPosition(index_b_, points_["point_b"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize()))
+        // Catch Error
+        try
         {
-            // Loop through line region
-            for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
+            // Check if points are valid (inside of map)
+            if(map_.getIndex(points_["point_a"], index_a_)
+            && map_.getIndex(points_["point_b"], index_b_))
             {
-                // Change value from 0.0 to 1.0
-                map_.at("type", *itr) = 1.0;
-                // Publish map
-                publish();
+                // Loop through line region
+                for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
+                {
+                    // Change value from 0.0 to 1.0
+                    map_.at("type", *itr) = 1.0;
+                    // Publish map
+                    publish();
+                }
+            }
+            else
+            {
+                // Obtain closest point if it is invalid
+                if(!map_.isInside(points_["point_a"]))
+                    points_["point_a"] = map_.getClosestPositionInMap(map_.getClosestPositionInMap(points_["point_a"]) + grid_map::Position(0.01, 0.01));
+
+                if(!map_.isInside(points_["point_b"]))
+                    points_["point_b"] = map_.getClosestPositionInMap(map_.getClosestPositionInMap(points_["point_b"]) + grid_map::Position(0.01, 0.01));
+
+                // Obtain index from closest point
+                if(map_.getIndex(points_["point_a"], index_a_)
+                && map_.getIndex(points_["point_b"], index_b_))
+                {
+                    // Loop through line region
+                    for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
+                    {
+                        // Change value from 0.0 to 1.0
+                        map_.at("type", *itr) = 1.0;
+                        // Publish map
+                        publish();
+                    }
+                }
+                else
+                {
+                    ROS_INFO_STREAM("Unable to obtain index correctly...");
+                }
+
             }
         }
-        else
+        catch(...)
         {
-            // Obtain closest point if it is invalid
-            points_["point_a"] = map_.getClosestPositionInMap(points_["point_a"]);
-            points_["point_b"] = map_.getClosestPositionInMap(points_["point_b"]);
-
-            // Obtain index from closest point
-            grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize());
-            grid_map::getIndexFromPosition(index_a_, points_["point_a"], map_.getLength(), map_.getPosition(), map_.getResolution(), map_.getSize());
-
-            // Loop through line region
-            for(grid_map::LineIterator itr(map_, index_a_, index_b_); !itr.isPastEnd(); ++itr)
-            {
-                // Change value from 0.0 to 1.0
-                map_.at("type", *itr) = 1.0;
-                // Publish map
-                publish();
-            }
+            ROS_INFO_STREAM("process function: ERROR!");
         }
         
     }
 
 
-    void line::prepare_int_marker(const std::string & name, const std::string & description)
+    void line::prepare_int_marker(const std::string name, const std::string description)
     {
         // Prepare point a
         int_marker_msg_.header.frame_id = map_.getFrameId();
@@ -150,14 +167,14 @@ namespace grid_map_line
                 int_marker_msg_.controls.emplace_back(con_int_marker_msg_);
 
         // Insert interactive marker into interactive marker server
-        insert_int_marker();
+        insert_int_marker(int_marker_msg_.name);
 
         // Add marker to points map
         points_[name] = grid_map::Position(0, 0);
     }
 
 
-    void line::insert_int_marker()
+    void line::insert_int_marker(const std::string marker_name)
     {
         // Insert marker
         int_server_->insert(int_marker_msg_);
@@ -170,7 +187,7 @@ namespace grid_map_line
                 if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE)
                 {
                     // DEBUG
-                    ROS_INFO_STREAM("DEBUG: marker x: " << feedback->pose.position.x << " marker y: " << feedback->pose.position.y);
+                    ROS_INFO_STREAM("DEBUG: marker name: " << name << " marker x: " << feedback->pose.position.x << " marker y: " << feedback->pose.position.y);
 
                     // Update the marker position to point position
                     this->points_[name] = grid_map::Position(feedback->pose.position.x, feedback->pose.position.y);
@@ -183,10 +200,10 @@ namespace grid_map_line
         // Set marker callback
         int_server_->setCallback(
             int_marker_msg_.name,
-            [this, & int_server_callback](const visualization_msgs::InteractiveMarkerFeedbackConstPtr & feedback)
+            [this, int_server_callback, marker_name](const visualization_msgs::InteractiveMarkerFeedbackConstPtr & feedback)
             {
                 // Use callback function
-                int_server_callback(feedback, this->int_marker_msg_.name);
+                int_server_callback(feedback, marker_name);
             }
         );
 
@@ -202,8 +219,6 @@ namespace grid_map_line
         // Prepare marker
         prepare_int_marker("point_a", "Point A");
         prepare_int_marker("point_b", "Point B");
-
-        // Insert marker
 
         while(private_nh_.ok())
         {
