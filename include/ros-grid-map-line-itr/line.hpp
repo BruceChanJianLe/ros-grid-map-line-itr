@@ -34,8 +34,6 @@ namespace grid_map_line
             int rate_;
             grid_map::GridMap map_;
             bool update_;
-            grid_map::Position point_a_;
-            grid_map::Position point_b_;
             grid_map::Index index_a_;
             grid_map::Index index_b_;
             std::map<std::string, grid_map::Position> points_;
@@ -44,9 +42,7 @@ namespace grid_map_line
             void publish();
             void process();
             void prepare_int_marker(const std::string,const std::string);
-            void display_int_marker();
             void insert_int_marker(const std::string);
-            grid_map::Position getValidClosestPositionInMap(const grid_map::Position &) const;
         public:
             // Constructor
             line();
