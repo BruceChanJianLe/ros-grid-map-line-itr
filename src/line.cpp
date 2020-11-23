@@ -41,12 +41,6 @@ namespace grid_map_line
     }
 
 
-    grid_map::Position line::getValidClosestPositionInMap(const grid_map::Position & pose) const
-    {
-        ;
-    }
-
-
     void line::process()
     {
         // Refresh map
