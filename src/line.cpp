@@ -137,8 +137,6 @@ namespace grid_map_line
         // Planar Marker
         int_marker_msg_.name = name;
         int_marker_msg_.description = description;
-        // int_marker_msg_.name = "point_a";
-        // int_marker_msg_.description = "point a";
 
         // Display control
 
