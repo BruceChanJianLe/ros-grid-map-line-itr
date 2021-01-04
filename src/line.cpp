@@ -68,10 +68,11 @@ namespace grid_map_line
             {
                 // Obtain closest point if it is invalid
                 if(!map_.isInside(points_["point_a"]))
-                    points_["point_a"] = map_.getClosestPositionInMap(map_.getClosestPositionInMap(points_["point_a"]) + grid_map::Position(0.01, 0.01));
+                    // points_["point_a"] = map_.getClosestPositionInMap(map_.getClosestPositionInMap(points_["point_a"]) + grid_map::Position(0.01, 0.01));
+                    points_["point_a"] = map_.getClosestPositionInMap(points_["point_a"]);
 
                 if(!map_.isInside(points_["point_b"]))
-                    points_["point_b"] = map_.getClosestPositionInMap(map_.getClosestPositionInMap(points_["point_b"]) + grid_map::Position(0.01, 0.01));
+                    points_["point_b"] = map_.getClosestPositionInMap(points_["point_b"]);
 
                 // Obtain index from closest point
                 if(map_.getIndex(points_["point_a"], index_a_)
